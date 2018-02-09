@@ -80,17 +80,10 @@ def update(player):
 
     # Add the new cipher to the ../data/ciphers.json file.
     if DIR.exists() and CIPHERS.exists():
-        try:
-            with CIPHERS.open('r+') as file:
-                ciphers = json.load(file)
-                ciphers.update({sts: cipher})
-                file.seek(0)
-                json.dump(ciphers, file, indent=2)
-                file.truncate()
-        except json.decoder.JSONDecodeError:
-            pass
+        with CIPHERS.open('w') as file:
+            json.dump({sts: cipher}, file, indent=2)
     else:
-        # Create the new directory and ../data/ciphers.json file.
+        # Create the new directory and ciphers.json file.
         DIR.mkdir(parents=True, exist_ok=True)
         CIPHERS.touch()
         with CIPHERS.open('w') as file:
@@ -111,16 +104,17 @@ def get(player):
     """
     if DIR.exists() and CIPHERS.exists():
         try:
-            if CIPHERS.stat().st_size > 0:
-                with CIPHERS.open('r') as file:
-                    ciphers = json.load(file)
-                    cipher = ciphers.get(player['sts'])
+            with CIPHERS.open('r') as file:
+                ciphers = json.load(file)
+                cipher = ciphers.get(player['sts'])
+                if cipher is not None:
                     return cipher
+                else:
+                    return update(player)
         except json.decoder.JSONDecodeError:
-            pass
+            return update(player)
     else:
-        cipher = update(player)
-        return cipher
+        return update(player)
 
 
 def decipher(signature, cipher):
