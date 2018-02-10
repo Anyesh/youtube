@@ -21,6 +21,13 @@ $ cd youtube
 $ python setup.py install
 ```
 
+You can also use `pip`:
+
+```
+$ pip install --upgrade pip setuptools
+$ pip install https://github.com/Fallmay/youtube/archive/master.tar.gz
+```
+
 ## Usage
 
 Get information about a video:
@@ -45,8 +52,10 @@ print(video.channel)
 
 print(video.streams['adaptive']['audio'])
 # {'140': {'bitrate': '128056', 'type': 'audio/mp4', ...
+
 print(video.streams['adaptive']['video'])
 # {'137': {'quality': '1080p', 'bitrate': '4276030', 'fps': '24', ...
+
 print(video.streams['multiplexed'])
 # {'22': {'quality': 'hd720', 'type': 'video/mp4', ...
 
@@ -65,10 +74,10 @@ favorite = ['nKIu9yen5nc', 'n_KghQP86Sw', 'kccUxGDsMAQ', 'QQmFyybzon0',
             'U6hkOAnFJxM', 'qDbsiVWA2Ag', '6mbFO0ZLMW8']
 
 data = youtube.load(favorite, video=True)
-for identifier, value in data.items():
-    video = youtube.Video(identifier=identifier, data=value)
+for _identifier, _data in data.items():
+    video = youtube.Video(identifier=_identifier, data=_data)
     print(json.dumps(video.__dict__))
-    
+
 # {"title": "What Most Schools Don't Teach", ...
 # {"title": "Internet - Understanding Technology - by CS50 at Harvard", ...
 # {"title": "Multimedia - Understanding Technology - by CS50 at Harvard", ...
