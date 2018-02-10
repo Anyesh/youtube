@@ -219,7 +219,7 @@ class VideoInfoExtractor(object):
         return re.search(r'"genre" content="(.*)"', self.html).group(1)
 
     def license(self):
-        return re.search(r'Standard YouTube License|Creative Commons - Attribution',
+        return re.search(r'Standard YouTube License|Creative Commons Attribution',
                          self.html).group()
 
     def keywords(self):
