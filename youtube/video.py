@@ -49,7 +49,7 @@ class Video(object):
             self.id = identifier
             data = load([self.id], video=True)
 
-        elif identifier is not None and data is not None:
+        elif identifier is not None:
             self.id = identifier
             data = {identifier: data}
 
@@ -128,9 +128,10 @@ class Video(object):
             multiplexed = self.streams['multiplexed']
 
             for itag in itags:
-                if multiplexed.get(itag) is not None:
-                    if multiplexed[itag]['type'] == 'video/{0}'.format(fmt):
-                        return multiplexed[itag]
+                if multiplexed.get(itag) is not None and multiplexed[itag][
+                    'type'
+                ] == 'video/{0}'.format(fmt):
+                    return multiplexed[itag]
 
 
 class VideoInfoExtractor(object):
@@ -156,13 +157,13 @@ class VideoInfoExtractor(object):
 
     def duration(self):
         seconds = int(self.info.get('length_seconds'))
-        if 3600 < seconds:
+        if seconds > 3600:
             return '{:02}:{:02}:{:02}'.format(seconds // 3600, seconds % 3600 // 60, seconds % 60)
-        elif 3600 > seconds:
+        elif seconds < 3600:
             return '{:02}:{:02}'.format(seconds % 3600 // 60, seconds % 60)
 
     def date(self):
-        return re.search(r'itemprop="datePublished" content="(.*)">', self.html).group(1)
+        return re.search(r'itemprop="datePublished" content="(.*)">', self.html)[1]
 
     def description(self):
         description = re.search('<p id="eow-description" class="" >(.*)</p>', self.html).group(1)
@@ -216,7 +217,7 @@ class VideoInfoExtractor(object):
         return ''.join(parser.data)
 
     def category(self):
-        return re.search(r'"genre" content="(.*)"', self.html).group(1)
+        return re.search(r'"genre" content="(.*)"', self.html)[1]
 
     def license(self):
         return re.search(r'Standard YouTube License|Creative Commons - Attribution',
@@ -234,8 +235,8 @@ class VideoInfoExtractor(object):
         views = self.info.get('view_count')
 
         if likes and dislikes:
-            likes = likes.group(1).replace(',', '')
-            dislikes = dislikes.group(1).replace(',', '')
+            likes = likes[1].replace(',', '')
+            dislikes = dislikes[1].replace(',', '')
 
         if 'allow_ratings' not in self.info:
             likes, dislikes = None, None
@@ -249,13 +250,13 @@ class VideoInfoExtractor(object):
         url = 'https://www.youtube.com/channel/{0}'.format(identifier)
 
         if subscribers:
-            subscribers = subscribers.group(1)
+            subscribers = subscribers[1]
 
         return dict(title=author, subscribers=subscribers, id=identifier, url=url)
 
     def player(self):
-        sts = re.search(r'"sts":(\d+)', self.html).group(1)
-        url = re.search(r'"js":"\\/(.*base\.js)"', self.html).group(1).replace('\\', '')
+        sts = re.search(r'"sts":(\d+)', self.html)[1]
+        url = re.search(r'"js":"\\/(.*base\.js)"', self.html)[1].replace('\\', '')
         url = 'https://www.youtube.com/{0}'.format(url)
 
         return dict(sts=sts, url=url)
@@ -287,24 +288,26 @@ class VideoInfoExtractor(object):
                     stream['url'] += '&signature={0}'.format(signature)
 
                 if 'quality_label' in stream:
-                    video.update({itag: dict(
+                    video[itag] = dict(
                         quality=stream.pop('quality_label'),
                         bitrate=stream.pop('bitrate'),
                         fps=stream.pop('fps'),
                         type=stream.pop('type'),
                         codecs=stream.pop('codecs'),
                         size=stream.pop('clen'),
-                        url=stream.pop('url'))
-                    })
+                        url=stream.pop('url'),
+                    )
+
 
                 else:
-                    audio.update({itag: dict(
+                    audio[itag] = dict(
                         bitrate=stream.pop('bitrate'),
                         type=stream.pop('type'),
                         codecs=stream.pop('codecs'),
                         size=stream.pop('clen'),
-                        url=stream.pop('url'))
-                    })
+                        url=stream.pop('url'),
+                    )
+
 
             streams['adaptive'] = dict(audio=audio, video=video)
 
@@ -345,14 +348,12 @@ class VideoInfoExtractor(object):
 
             if 'captionTracks' in tracks:
                 tracks = tracks['captionTracks']
-                captions = {}
-
-                for track in tracks:
-                    captions.update({track['name']['simpleText']: dict(
-                        languageCode=track['languageCode'], url=track['baseUrl'])
-                    })
-
-                return captions
+                return {
+                    track['name']['simpleText']: dict(
+                        languageCode=track['languageCode'], url=track['baseUrl']
+                    )
+                    for track in tracks
+                }
 
     def thumbnails(self):
         return {
