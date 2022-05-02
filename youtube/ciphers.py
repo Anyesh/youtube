@@ -24,15 +24,15 @@ def update(player):
     with request.urlopen(url) as file:
         player = file.read().decode('utf-8')
 
-    name = re.search(r'"signature",(\w*)\(', player).group(1)
+    name = re.search(r'"signature",(\w*)\(', player)[1]
 
     body = '{0}=function\(a\){{(a=a\.split.*?)}};'.format(name)
-    body = re.search(body, player).group(1).split(';')[1:-1]
+    body = re.search(body, player)[1].split(';')[1:-1]
 
-    var = re.search(r'(\w*)\.', body[0]).group(1)
+    var = re.search(r'(\w*)\.', body[0])[1]
 
     functions = 'var {0}={{(.*?)}};'.format(var)
-    functions = re.search(functions, player, re.DOTALL).group(1)
+    functions = re.search(functions, player, re.DOTALL)[1]
 
     # Example:
     # name = 'DK'
@@ -64,31 +64,26 @@ def update(player):
     # We got the valid signature ;)
 
     for operation in body:
-        name = re.search(r'\w+\.(\w+)', operation).group(1)
-        value = re.search(r'\(\w*,(\d*)\)', operation).group(1)
+        name = re.search(r'\w+\.(\w+)', operation)[1]
+        value = re.search(r'\(\w*,(\d*)\)', operation)[1]
 
-        if re.search(name + r':function.*(splice).*', functions):
+        if re.search(f'{name}:function.*(splice).*', functions):
             cipher.append('s{0}'.format(value))  # s – the slice method.
 
         elif re.search(name + r':function\(\w+\)', functions):
             cipher.append('r{0}'.format(value))  # r – the reverse method.
 
-        elif re.search(name + r':function.*(length).*', functions):
+        elif re.search(f'{name}:function.*(length).*', functions):
             cipher.append('w{0}'.format(value))  # w – the swap method.
 
     cipher = ' '.join(cipher)
 
-    # Add the new cipher to the ../data/ciphers.json file.
-    if DIR.exists() and CIPHERS.exists():
-        with CIPHERS.open('w') as file:
-            json.dump({sts: cipher}, file, indent=2)
-    else:
+    if not DIR.exists() or not CIPHERS.exists():
         # Create the new directory and ciphers.json file.
         DIR.mkdir(parents=True, exist_ok=True)
         CIPHERS.touch()
-        with CIPHERS.open('w') as file:
-            json.dump({sts: cipher}, file, indent=2)
-
+    with CIPHERS.open('w') as file:
+        json.dump({sts: cipher}, file, indent=2)
     return cipher
 
 
@@ -102,18 +97,14 @@ def get(player):
        If the cipher is missing in known ciphers, then the 'update' method will be used.
 
     """
-    if DIR.exists() and CIPHERS.exists():
-        try:
-            with CIPHERS.open('r') as file:
-                ciphers = json.load(file)
-                cipher = ciphers.get(player['sts'])
-                if cipher is not None:
-                    return cipher
-                else:
-                    return update(player)
-        except json.decoder.JSONDecodeError:
-            return update(player)
-    else:
+    if not DIR.exists() or not CIPHERS.exists():
+        return update(player)
+    try:
+        with CIPHERS.open('r') as file:
+            ciphers = json.load(file)
+            cipher = ciphers.get(player['sts'])
+            return cipher if cipher is not None else update(player)
+    except json.decoder.JSONDecodeError:
         return update(player)
 
 
